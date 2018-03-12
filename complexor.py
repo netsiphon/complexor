@@ -10,21 +10,19 @@ import argparse
 from operator import xor
 
 
-DEBUG = False
+DEBUG = True
 charSet = {}
 charSetCheck = {}
 file_size = 0
 max_key_size = 1024
 
 
-# File Types
 class FileTypes:
     def __init__(self):
         self.types = []
         self.typeLookup = {}
 
 
-# File Type
 class FileType:
     def __init__(self):
         self.id = None
@@ -101,9 +99,10 @@ def main(args):
                 charSet = findKeys(in_file, keyHint, detection_offset)
                 key = findRepeatKey(charSet, keyHint, detection_offset)
                 if DEBUG is True:
-                    print 'Repeat:' + unicode(key)
+                    print 'RepeatedKey: ' + unicode(key)
                 key = findLongKey(charSet, keyHint, detection_offset)
-
+                if DEBUG is True:
+                    print 'LongestKey: ' + unicode(key)
                 if key != '':
                     key = ''.join(keyHint) + key
                     print 'DETECT KEY: Found Key \'' + key + '\''
@@ -236,7 +235,7 @@ def findRepeatKey(charSet, keyStart, offset):
         mod_factor = 1
     for k in range(kLen, -1, -1):
         len_key = len(keys[k])
-        if len_key <= 1 or (len_key >= 2 and len_key % mod_factor == 0):
+        if (len_key >= 1 and len_key % mod_factor == 0):
             if values[k] > values[repeatKey]:
                 if values[k] >= int(file_size/offset):
                     if file_size % len_key == 0:
