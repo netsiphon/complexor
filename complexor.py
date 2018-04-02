@@ -15,6 +15,7 @@ charSet = {}
 charSetCheck = {}
 file_size = 0
 max_key_size = 1024
+loadTypes = 'filetypes.yml'
 
 
 class FileTypes:
@@ -27,8 +28,11 @@ class FileType:
     def __init__(self):
         self.id = None
         self.fileMagic = []
+        self.fileMagicLen = 0
+        self.description = ""
         self.name = ""
 
+myTypes = FileTypes()
 
 """
     Main -
@@ -93,16 +97,16 @@ def main(args):
             if detection_offset >= 0:
                 # Check against known characters for executable
                 keyHint = checkHead(in_file.read(2))
-                if DEBUG is True:
+                if DEBUG:
                     print 'KeyHint:"' + ''.join(keyHint) + '"'
                 in_file.seek(file_size - detection_offset)
                 charSet = findKeys(in_file, keyHint, detection_offset)
                 key = findRepeatKey(charSet, keyHint, detection_offset)
-                if DEBUG is True:
+                if DEBUG:
                     print 'RepeatedKey: ' + unicode(key)
-                key = findLongKey(charSet, keyHint, detection_offset)
-                if DEBUG is True:
-                    print 'LongestKey: ' + unicode(key)
+                key = findLongRepeatKey(charSet, keyHint, detection_offset)
+                if DEBUG:
+                    print 'LongestRepeatKey: ' + unicode(key)
                 if key != '':
                     key = ''.join(keyHint) + key
                     print 'DETECT KEY: Found Key \'' + key + '\''
@@ -138,15 +142,28 @@ def main(args):
 
 
 def checkHead(first_chars):
-    exeHead = ['M', 'Z']
-    keyStart = ['', '']
-    if DEBUG is True:
+    exeHead = ['M', 'Z', '0x90']
+    keyStart = ['', '', '']
+    if DEBUG:
         print 'FirstChars:' + first_chars
-    if len(first_chars) == 2:
+    if len(first_chars) == 3:
         keyStart[0] = chr(xor(ord(exeHead[0]), ord(first_chars[0])))
         keyStart[1] = chr(xor(ord(exeHead[1]), ord(first_chars[1])))
+        keyStart[2] = chr(xor(ord(exeHead[2]), ord(first_chars[2])))
     return keyStart
 
+
+def checkFileHeader(fileType):
+    fileHead = ['M', 'Z', '0x90']
+    keyStart = ['', '', '']
+    if DEBUG:
+        print 'FirstChars:' + first_chars
+    if len(first_chars) == 3:
+        keyStart[0] = chr(xor(ord(exeHead[0]), ord(first_chars[0])))
+        keyStart[1] = chr(xor(ord(exeHead[1]), ord(first_chars[1])))
+        keyStart[2] = chr(xor(ord(exeHead[2]), ord(first_chars[2])))
+    return keyStart
+    
 
 def findKeys(in_file, keyStart, offset):
     try:
@@ -158,11 +175,13 @@ def findKeys(in_file, keyStart, offset):
             mod_factor = 2
         else:
             mod_factor = 1
+        if DEBUG:
+            print 'findkeys::ModFactor=' + str(mod_factor)
         in_file.seek(file_size - offset)
         while keyChar != '':
             keyLen = len(keyBuffer)
-            if keyLen >= 2:
-                if(keyBuffer[keyLen - 2:] == ''.join(keyStart) and keyLen %
+            if keyLen >= 3:
+                if(keyBuffer[keyLen - 3:] == ''.join(keyStart) and keyLen %
                    mod_factor == 0):
                     # and file_size - (keyLen * int(offset/keyLen)) > 0:
                     keyBuffer = ''
@@ -215,7 +234,7 @@ def findLongKey(charSet, keyStart, offset):
         mod_factor = 1
     for k in range(kLen, -1, -1):
         len_key = len(keys[k])
-        if len_key > len(keys[longestKey]) and len_key % mod_factor == 0:
+        if len_key > len(keys[longestKey]): # and len_key % mod_factor == 0:
             if values[k] >= int(file_size/offset):
                 if file_size % len_key == 0:
                     longestKey = k
@@ -235,23 +254,69 @@ def findRepeatKey(charSet, keyStart, offset):
         mod_factor = 1
     for k in range(kLen, -1, -1):
         len_key = len(keys[k])
-        if (len_key >= 1 and len_key % mod_factor == 0):
-            if values[k] > values[repeatKey]:
-                if values[k] >= int(file_size/offset):
-                    if file_size % len_key == 0:
-                        repeatKey = k
+        #if (len_key >= 1 and len_key % mod_factor == 0):
+        if values[k] > values[repeatKey]:
+            if values[k] >= int(file_size/offset):
+                if file_size % len_key == 0:
+                    repeatKey = k
     keyOut[0] = keys[repeatKey]
     return keyOut
 
-
+def findLongRepeatKey(charSet, keyStart, offset):
+    keys = charSet.keys()
+    values = charSet.values()
+    kLen = len(keys) - 1
+    mostMatches = 0
+    longestKey = -1
+    repeatKey = -1
+    if int(file_size/offset) % 2 == 0:
+        mod_factor = 2
+    else:
+        mod_factor = 1
+    for k in range(kLen, -1, -1):
+        len_key = len(keys[k])
+        if len_key > len(keys[longestKey]):
+            if values[k] > values[repeatKey]:
+                if values[k] >= int(file_size/offset):
+                    if file_size % len_key == 0 and repeatKey:
+                        longestKey = k
+                        repeatKey = k
+    return keys[longestKey]
+    
 def debugCharSet(charSet):
-    if DEBUG is True:
+    if DEBUG:
         keys = charSet.keys()
         values = charSet.values()
+        kLen = len(keys) - 1
+        for k in range(kLen, -1, -1):
+            print 'Key: ' + keys[k] + ' -> ' + str(values[k]) + ';'
         print keys
         print values
     else:
         return
+
+def loadFileTypes():
+    try:
+        file_types = open(loadTypes, 'rb')
+    except:
+        print 'Fatal Error: Could not open ' + loadTypes + '!'
+        sys.exit(0)
+    try:
+        line = ''
+        line = file_types.readline
+        pos = 0
+        while line != '':
+            #YAML parsing here...
+            
+            line = file_types.readline
+            pos += 1
+        if DEBUG:
+            print 'loadFileTypes::read: ' + str(pos) + ''
+        file_types.close
+    except:
+        print 'Fatal Error Parsing ' + loadTypes + '!'
+        sys.exit(0)
+    return
 
 
 if __name__ == '__main__':
@@ -263,6 +328,10 @@ if __name__ == '__main__':
             )
         parser.add_argument('in_file', type=str, help='File input')
         parser.add_argument('out_file', type=str, help='File output')
+        parser.add_argument(
+            '-t', metavar='type', type=str, default='pewin32',
+            help='Specify a file type to use to detect the key (default=pewin32)'
+            )
         parser.add_argument(
             '-k', metavar='key', type=str,
             help='Specify a key rather than detect it automatically'
