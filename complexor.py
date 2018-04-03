@@ -11,28 +11,28 @@ from operator import xor
 
 
 DEBUG = True
-charSet = {}
-charSetCheck = {}
+charset = {}
+charset_check = {}
 file_size = 0
 max_key_size = 1024
-loadTypes = 'filetypes.yml'
+load_types = 'filetypes.yml'
 
 
 class FileTypes:
     def __init__(self):
         self.types = []
-        self.typeLookup = {}
+        self.type_lookup = {}
 
 
 class FileType:
     def __init__(self):
         self.id = None
-        self.fileMagic = []
-        self.fileMagicLen = 0
+        self.file_magic = []
+        self.file_magic_len = 0
         self.description = ""
         self.name = ""
 
-myTypes = FileTypes()
+MyTypes = FileTypes()
 
 """
     Main -
@@ -43,7 +43,7 @@ myTypes = FileTypes()
 def main(args):
     try:
         pos = 0
-        keyHint = ''
+        key_hint = ''
         begin_offset = 0
         offset_chars = ''
         detection_offset = -1
@@ -85,7 +85,7 @@ def main(args):
             # Read offset bytes
             if begin_offset > 0:
                 offset_chars = in_file.read(begin_offset)
-                if args.w is True:
+                if args.w:
                     out_file.write(offset_chars)
                     pos = pos + begin_offset
                     offset_chars = ''
@@ -96,33 +96,33 @@ def main(args):
             # Attempt to determine key
             if detection_offset >= 0:
                 # Check against known characters for executable
-                keyHint = checkHead(in_file.read(2))
+                key_hint = check_head(in_file.read(2))
                 if DEBUG:
-                    print 'KeyHint:"' + ''.join(keyHint) + '"'
+                    print 'key_hint:"' + ''.join(key_hint) + '"'
                 in_file.seek(file_size - detection_offset)
-                charSet = findKeys(in_file, keyHint, detection_offset)
-                key = findRepeatKey(charSet, keyHint, detection_offset)
+                charset = find_keys(in_file, key_hint, detection_offset)
+                key = find_repeat_key(charset, key_hint, detection_offset)
                 if DEBUG:
                     print 'RepeatedKey: ' + unicode(key)
-                key = findLongRepeatKey(charSet, keyHint, detection_offset)
+                key = find_long_repeat_key(charset, key_hint, detection_offset)
                 if DEBUG:
-                    print 'LongestRepeatKey: ' + unicode(key)
+                    print 'Longestrepeat_key: ' + unicode(key)
                 if key != '':
-                    key = ''.join(keyHint) + key
+                    key = ''.join(key_hint) + key
                     print 'DETECT KEY: Found Key \'' + key + '\''
                 else:
                     print('DETECT KEY: Failed to detect key! '
                           'Try a larger detection offset.')
         if key != '':
             # Key as array of characters
-            bKey = list(key)
+            bkey = list(key)
             key_len = len(key)
             in_file.seek(begin_offset)
             byte = ''
             byte = in_file.read(1)
             pos = 0
             while byte != '':
-                key_cur = bKey[pos % key_len]
+                key_cur = bkey[pos % key_len]
                 # Compare
                 xor_out = chr(xor(ord(byte), ord(key_cur)))
                 out_file.write(xor_out)
@@ -141,165 +141,165 @@ def main(args):
         sys.exit(0)
 
 
-def checkHead(first_chars):
-    exeHead = ['M', 'Z', '0x90']
-    keyStart = ['', '', '']
+def check_head(first_chars):
+    exe_head = ['M', 'Z', '0x90']
+    key_start = ['', '', '']
     if DEBUG:
         print 'FirstChars:' + first_chars
     if len(first_chars) == 3:
-        keyStart[0] = chr(xor(ord(exeHead[0]), ord(first_chars[0])))
-        keyStart[1] = chr(xor(ord(exeHead[1]), ord(first_chars[1])))
-        keyStart[2] = chr(xor(ord(exeHead[2]), ord(first_chars[2])))
-    return keyStart
+        key_start[0] = chr(xor(ord(exe_head[0]), ord(first_chars[0])))
+        key_start[1] = chr(xor(ord(exe_head[1]), ord(first_chars[1])))
+        key_start[2] = chr(xor(ord(exe_head[2]), ord(first_chars[2])))
+    return key_start
 
 
-def checkFileHeader(fileType):
-    fileHead = ['M', 'Z', '0x90']
-    keyStart = ['', '', '']
+def check_file_header(fileType):
+    file_head = ['M', 'Z', '0x90']
+    key_start = ['', '', '']
     if DEBUG:
         print 'FirstChars:' + first_chars
     if len(first_chars) == 3:
-        keyStart[0] = chr(xor(ord(exeHead[0]), ord(first_chars[0])))
-        keyStart[1] = chr(xor(ord(exeHead[1]), ord(first_chars[1])))
-        keyStart[2] = chr(xor(ord(exeHead[2]), ord(first_chars[2])))
-    return keyStart
+        key_start[0] = chr(xor(ord(exe_head[0]), ord(first_chars[0])))
+        key_start[1] = chr(xor(ord(exe_head[1]), ord(first_chars[1])))
+        key_start[2] = chr(xor(ord(exe_head[2]), ord(first_chars[2])))
+    return key_start
     
 
-def findKeys(in_file, keyStart, offset):
+def find_keys(in_file, key_start, offset):
     try:
         file_size = os.path.getsize(args.in_file)
-        keyChar = in_file.read(1)
-        keyBuffer = ''
-        keyBuffer = keyBuffer + keyChar
+        key_char = in_file.read(1)
+        key_buffer = ''
+        key_buffer = key_buffer + key_char
         if int(file_size/offset) % 2 == 0:
             mod_factor = 2
         else:
             mod_factor = 1
         if DEBUG:
-            print 'findkeys::ModFactor=' + str(mod_factor)
+            print 'find_keys::ModFactor=' + str(mod_factor)
         in_file.seek(file_size - offset)
-        while keyChar != '':
-            keyLen = len(keyBuffer)
+        while key_char != '':
+            keyLen = len(key_buffer)
             if keyLen >= 3:
-                if(keyBuffer[keyLen - 3:] == ''.join(keyStart) and keyLen %
+                if(key_buffer[keyLen - 3:] == ''.join(key_start) and keyLen %
                    mod_factor == 0):
                     # and file_size - (keyLen * int(offset/keyLen)) > 0:
-                    keyBuffer = ''
-            if keyChar in charSet:
-                charSet[keyChar] += 1
+                    key_buffer = ''
+            if key_char in charset:
+                charset[key_char] += 1
             else:
-                charSet[keyChar] = 1
-            if keyBuffer in charSet:
-                charSet[keyBuffer] += 1
+                charset[key_char] = 1
+            if key_buffer in charset:
+                charset[key_buffer] += 1
             else:
-                charSet[keyBuffer] = 1
-            keyChar = in_file.read(1)
-            keyBuffer = keyBuffer + keyChar
-        debugCharSet(charSet)
-        keys = charSet.keys()
-        values = charSet.values()
-        kLen = len(keys) - 1
-        for k in range(kLen, -1, -1):
+                charset[key_buffer] = 1
+            key_char = in_file.read(1)
+            key_buffer = key_buffer + key_char
+        debug_charset(charset)
+        keys = charset.keys()
+        values = charset.values()
+        klen = len(keys) - 1
+        for k in range(klen, -1, -1):
             key_length = len(keys[k])
             if key_length > 0 and key_length <= offset:
                 seek = file_size - (key_length * int(offset/key_length))
                 if seek > 0:
                     in_file.seek(seek)
-                    keyChar = in_file.read(key_length)
-                    while keyChar != '':
-                        if keys[k] == keyChar:
-                            if keys[k] not in charSetCheck:
-                                charSetCheck[keys[k]] = 1
+                    key_char = in_file.read(key_length)
+                    while key_char != '':
+                        if keys[k] == key_char:
+                            if keys[k] not in charset_check:
+                                charset_check[keys[k]] = 1
                             else:
-                                charSetCheck[keys[k]] += 1
-                        keyChar = in_file.read(key_length)
-        debugCharSet(charSetCheck)
-        keyCheckKeys = charSetCheck.keys()
-        keyCheckValues = charSetCheck.values()
-        return charSetCheck
+                                charset_check[keys[k]] += 1
+                        key_char = in_file.read(key_length)
+        debug_charset(charset_check)
+        key_check_keys = charset_check.keys()
+        key_check_values = charset_check.values()
+        return charset_check
     except Exception as e:
         print('Error:' + str(type(e)) + ':' + str(e) +
               ' at line: {}'.format(sys.exc_info()[-1].tb_lineno))
 
 
-def findLongKey(charSet, keyStart, offset):
-    keys = charSet.keys()
-    values = charSet.values()
-    kLen = len(keys) - 1
-    mostMatches = 0
-    longestKey = -1
+def find_long_key(charset, key_start, offset):
+    keys = charset.keys()
+    values = charset.values()
+    klen = len(keys) - 1
+    most_matches = 0
+    longest_key = -1
     if int(file_size/offset) % 2 == 0:
         mod_factor = 2
     else:
         mod_factor = 1
-    for k in range(kLen, -1, -1):
+    for k in range(klen, -1, -1):
         len_key = len(keys[k])
-        if len_key > len(keys[longestKey]): # and len_key % mod_factor == 0:
+        if len_key > len(keys[longest_key]): # and len_key % mod_factor == 0:
             if values[k] >= int(file_size/offset):
                 if file_size % len_key == 0:
-                    longestKey = k
-    return keys[longestKey]
+                    longest_key = k
+    return keys[longest_key]
 
 
-def findRepeatKey(charSet, keyStart, offset):
-    keys = charSet.keys()
-    values = charSet.values()
-    kLen = len(keys) - 1
-    mostMatches = 0
-    repeatKey = -1
-    keyOut = ['']
+def find_repeat_key(charset, key_start, offset):
+    keys = charset.keys()
+    values = charset.values()
+    klen = len(keys) - 1
+    most_matches = 0
+    repeat_key = -1
+    key_out = ['']
     if int(file_size/offset) % 2 == 0:
         mod_factor = 2
     else:
         mod_factor = 1
-    for k in range(kLen, -1, -1):
+    for k in range(klen, -1, -1):
         len_key = len(keys[k])
         #if (len_key >= 1 and len_key % mod_factor == 0):
-        if values[k] > values[repeatKey]:
+        if values[k] > values[repeat_key]:
             if values[k] >= int(file_size/offset):
                 if file_size % len_key == 0:
-                    repeatKey = k
-    keyOut[0] = keys[repeatKey]
-    return keyOut
+                    repeat_key = k
+    key_out[0] = keys[repeat_key]
+    return key_out
 
-def findLongRepeatKey(charSet, keyStart, offset):
-    keys = charSet.keys()
-    values = charSet.values()
-    kLen = len(keys) - 1
-    mostMatches = 0
-    longestKey = -1
-    repeatKey = -1
+def find_long_repeat_key(charset, key_start, offset):
+    keys = charset.keys()
+    values = charset.values()
+    klen = len(keys) - 1
+    most_matches = 0
+    longest_key = -1
+    repeat_key = -1
     if int(file_size/offset) % 2 == 0:
         mod_factor = 2
     else:
         mod_factor = 1
-    for k in range(kLen, -1, -1):
+    for k in range(klen, -1, -1):
         len_key = len(keys[k])
-        if len_key > len(keys[longestKey]):
-            if values[k] > values[repeatKey]:
+        if len_key > len(keys[longest_key]):
+            if values[k] > values[repeat_key]:
                 if values[k] >= int(file_size/offset):
-                    if file_size % len_key == 0 and repeatKey:
-                        longestKey = k
-                        repeatKey = k
-    return keys[longestKey]
+                    if file_size % len_key == 0 and repeat_key:
+                        longest_key = k
+                        repeat_key = k
+    return keys[longest_key]
     
-def debugCharSet(charSet):
+def debug_charset(charset):
     if DEBUG:
-        keys = charSet.keys()
-        values = charSet.values()
-        kLen = len(keys) - 1
-        for k in range(kLen, -1, -1):
+        keys = charset.keys()
+        values = charset.values()
+        klen = len(keys) - 1
+        for k in range(klen, -1, -1):
             print 'Key: ' + keys[k] + ' -> ' + str(values[k]) + ';'
         print keys
         print values
     else:
         return
 
-def loadFileTypes():
+def load_file_types():
     try:
-        file_types = open(loadTypes, 'rb')
+        file_types = open(load_types, 'rb')
     except:
-        print 'Fatal Error: Could not open ' + loadTypes + '!'
+        print 'Fatal Error: Could not open ' + load_types + '!'
         sys.exit(0)
     try:
         line = ''
@@ -311,10 +311,10 @@ def loadFileTypes():
             line = file_types.readline
             pos += 1
         if DEBUG:
-            print 'loadFileTypes::read: ' + str(pos) + ''
+            print 'load_file_types::read: ' + str(pos) + ''
         file_types.close
     except:
-        print 'Fatal Error Parsing ' + loadTypes + '!'
+        print 'Fatal Error Parsing ' + load_types + '!'
         sys.exit(0)
     return
 
