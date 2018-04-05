@@ -1,8 +1,8 @@
 # Defined File Types
 
-type pewin32:
-    magic: "4D5A9000 03000000 04000000 FFFF0000 B8"
-    len: 17
+type:
+    magic      : "4D5A9000 03000000 04000000 FFFF0000 B8"
+    len        : 17
     description: "Default malware executable format to look for."
-    name: "pewin32"
+    name       : "pewin32"
 
